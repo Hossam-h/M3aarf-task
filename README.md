@@ -1,66 +1,186 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# YouTube Course Scraper
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel 12 web application that leverages **OpenAI** and the **YouTube Data API v3** to intelligently discover and collect educational playlists from YouTube based on user-defined categories.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Table of Contents
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- [Overview](#overview)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [API Keys Configuration](#api-keys-configuration)
+- [Running the Project](#running-the-project)
+- [Usage](#usage)
+- [Project Structure](#project-structure)
+- [Routes](#routes)
+- [License](#license)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## Overview
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+This application automates the process of discovering educational YouTube playlists:
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+1. **Input** — The user enters learning categories (one per line).
+2. **AI Generation** — Each category is sent to OpenAI to generate 10 targeted search queries.
+3. **YouTube Search** — Each query is used to search YouTube for matching playlists.
+4. **Deduplication** — Results are stored in MySQL with automatic duplicate prevention via unique `playlist_id`.
+5. **Display** — A filterable, paginated card-based UI presents all collected playlists.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## Tech Stack
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+| Layer       | Technology              |
+|-------------|-------------------------|
+| Framework   | Laravel 12              |
+| Language    | PHP 8.2                 |
+| Database    | MySQL                   |
+| Frontend    | Bootstrap 5, Blade      |
+| AI Provider | OpenAI API (GPT-3.5)    |
+| Video API   | YouTube Data API v3     |
 
-### Premium Partners
+---
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+## Architecture
 
-## Contributing
+The application follows the **Repository Design Pattern** with a dedicated service layer:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```
+Request → FormRequest → Controller → Service → Repository → Model → Database
+```
 
-## Code of Conduct
+| Layer              | Responsibility                              |
+|--------------------|---------------------------------------------|
+| **FormRequest**    | Input validation (thin, reusable)           |
+| **Controller**     | HTTP handling only — no business logic       |
+| **Service**        | Business logic and external API integration |
+| **Repository**     | Data access abstraction via interfaces      |
+| **Model**          | Eloquent ORM representation                 |
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+## Requirements
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+- PHP >= 8.2
+- Composer >= 2.x
+- MySQL >= 5.7
+- Git
+
+---
+
+## Installation
+
+```bash
+# 1. Clone the repository
+git clone <repository-url> e-learning-app
+cd e-learning-app
+
+# 2. Install PHP dependencies
+composer install
+
+# 3. Configure environment
+cp .env.example .env
+php artisan key:generate
+
+# 4. Create the database
+mysql -u root -e "CREATE DATABASE IF NOT EXISTS e_learning_app;"
+
+# 5. Run migrations
+php artisan migrate
+```
+
+---
+
+## API Keys Configuration
+
+The application requires two API keys. Add them to your `.env` file:
+
+```env
+OPENAI_API_KEY=your-openai-key-here
+YOUTUBE_API_KEY=your-youtube-key-here
+```
+
+### OpenAI API Key
+
+1. Visit [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+2. Sign in or create an account
+3. Generate a new secret key
+4. Copy the key into `OPENAI_API_KEY` in `.env`
+
+> If no key is provided, the app falls back to predefined search queries — it will still function, just without AI-generated titles.
+
+### YouTube Data API v3 Key
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create or select a project
+3. Enable **YouTube Data API v3** under *APIs & Services → Library*
+4. Create an API key under *APIs & Services → Credentials*
+5. Copy the key into `YOUTUBE_API_KEY` in `.env`
+
+> Restrict the key to **YouTube Data API v3** only for security best practices.
+
+---
+
+## Running the Project
+
+```bash
+php artisan serve
+```
+
+Open your browser at **http://localhost:8000**
+
+---
+
+## Usage
+
+1. Navigate to the **Home** page (`/`)
+2. Enter your learning categories in the textarea — one category per line
+3. Click **Start Fetching**
+4. Wait for the process to complete (AI generation + YouTube search)
+5. You will be redirected to the **Results** page (`/results`)
+6. Use the category filter tabs to browse playlists by topic
+7. Click any card to open the playlist directly on YouTube
+
+---
+
+## Project Structure
+
+```
+app/
+├── Http/
+│   ├── Controllers/
+│   │   └── CategoryController.php           # Thin controller
+│   └── Requests/
+│       └── FetchCategoriesRequest.php       # Custom form validation
+├── Models/
+│   └── Playlist.php                         # Eloquent model
+├── Repositories/
+│   ├── Interfaces/
+│   │   └── PlaylistRepositoryInterface.php  # Repository contract
+│   └── PlaylistRepository.php               # Eloquent implementation
+├── Providers/
+│   └── RepositoryServiceProvider.php        # Interface bindings
+└── Services/
+    ├── AIService.php                        # OpenAI integration
+    └── YouTubeService.php                   # YouTube API integration
+```
+
+---
+
+## Routes
+
+| Method | URI       | Controller Action              | Description                  |
+|--------|-----------|--------------------------------|------------------------------|
+| GET    | `/`       | `CategoryController@index`     | Home page with input form    |
+| POST   | `/fetch`  | `CategoryController@fetch`     | Process categories           |
+| GET    | `/results`| `CategoryController@results`   | Paginated results with filter|
+
+---
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is open-sourced software licensed under the [MIT License](https://opensource.org/licenses/MIT).
