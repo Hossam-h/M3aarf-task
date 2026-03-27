@@ -26,7 +26,7 @@
                 <span class="brand-icon">
                     <i class="bi bi-youtube"></i>
                 </span>
-                YouTube Course 
+                YouTube Course
             </a>
 
             <button class="navbar-toggler border-0" type="button"
